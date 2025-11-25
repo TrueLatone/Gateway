@@ -13,6 +13,20 @@ Gateway là một máy chủ WebSocket trung gian cho phép kết nối giữa A
 + Hoạt động như một **client** kết nối đến Gateway.
 + Nó tự "đăng ký" với Gateway: "Tôi là Web Client"
 
+### Cách chạy mà không cần mở Visual Studio (Còn không follow full ở dưới)
+1. File Agent.exe đã push lên Release (bên phải) rồi unzip ra xong chạy
+2. Vẫn cài Node.js
+3. Vào folder Gateway trong cùng **(Chuột phải -> Open in Terminal)**
+4. Chạy 2 lệnh sau để cài:
+```bash
+npm init -y
+npm install ws
+```
+5. Cài xong thì chạy
+```bash
+node app.js
+```
+
 ## Cần cài đặt
 - Visual Studio 2022 (Không hỗ trợ bản 2026) **(Chỉ cần cài nếu Build file)**
 - Node.js 
