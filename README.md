@@ -14,6 +14,7 @@ Gateway là một máy chủ WebSocket trung gian cho phép kết nối giữa A
 + Nó tự "đăng ký" với Gateway: "Tôi là Web Client"
 
 ## Cần cài đặt
+- Visual Studio 2022 (Không hỗ trợ bản 2026)
 - Node.js 
 - npm (thường đi kèm với Node.js)
 
@@ -23,7 +24,6 @@ Gateway là một máy chủ WebSocket trung gian cho phép kết nối giữa A
 
 1. Truy cập và tải trên: https://nodejs.org/en/download
 2. Chạy file cài đặt (.msi cho Windows)
-3. Cần phải chọn "Add to PATH" khi cài đặt
 
 ## Cài đặt thư viện npm cho Gateway
 
