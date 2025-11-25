@@ -13,7 +13,7 @@ Gateway là một máy chủ WebSocket trung gian cho phép kết nối giữa A
 + Hoạt động như một **client** kết nối đến Gateway.
 + Nó tự "đăng ký" với Gateway: "Tôi là Web Client"
 
-### Cách chạy mà không cần mở Visual Studio (Còn không follow full ở dưới)
+## Cách chạy mà không cần mở Visual Studio (Còn không follow full ở dưới)
 1. File Agent.exe đã push lên Release (bên phải) rồi unzip ra xong chạy
 2. Vẫn cài Node.js
 3. Vào folder Gateway trong cùng **(Chuột phải -> Open in Terminal)**
@@ -26,6 +26,14 @@ npm install ws
 ```bash
 node app.js
 ```
+
+## Các tính năng đã thêm:
+1. Shutdown/Restart máy
+2. Quản lý Process/Applications
+3. Quản lý Registry (buggy)
+4. Chụp màn hình
+5. Keylogger (buggy)
+6. Bật/Tắt Webcam
 
 ## Cần cài đặt
 - Visual Studio 2022 (Không hỗ trợ bản 2026) **(Chỉ cần cài nếu Build file)**
@@ -89,6 +97,7 @@ Gateway đang chạy tại ws://localhost:8080
    - Chọn một Agent để bắt đầu điều khiển
 
 ### Kết nối từ Agent (C# Application)
+**NOTE: Sau khi thêm tính năng Webcam cần cài thêm NuGet package: AForge.Video và AForge.Video.DirectShow**
 1. **Build và chạy Agent:**
 2. **Kiểm tra kết nối:**
    - Agent sẽ tự động kết nối đến Gateway khi khởi động
